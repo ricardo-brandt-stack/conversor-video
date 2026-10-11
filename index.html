@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Vídeo - Local & Seguro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-card">
+        <!-- CABEÇALHO -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="brand">
+                    <span class="brand-icon">🎬</span>
+                    <div>
+                        <h1>Conversor de Vídeo</h1>
+                        <p>Converta ou extraia áudio de vídeos com total privacidade</p>
+                    </div>
+                </div>
+                <button id="theme-toggle" class="theme-btn" aria-label="Alternar Tema">
+                    <span id="theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <!-- UPLOAD -->
+            <section class="panel">
+                <h2 class="panel-title">1. Selecionar Vídeo</h2>
+                <div class="upload-zone" id="drop-zone">
+                    <input type="file" id="file-input" accept="video/*">
+                    <label for="file-input" class="upload-label">
+                        <span class="upload-icon">📹</span>
+                        <div class="upload-text">
+                            <strong id="upload-status">Clique para selecionar ou arraste um vídeo</strong>
+                            <span>Suporta MP4, WebM, MOV, AVI, MKV</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- PREVIEW DO VÍDEO -->
+                <div id="video-preview-container" class="hidden">
+                    <video id="video-preview" controls style="max-width: 100%; border-radius: 8px; margin-top: 10px; max-height: 200px;"></video>
+                </div>
+            </section>
+
+            <!-- OPÇÕES DE CONVERSÃO -->
+            <section class="panel">
+                <h2 class="panel-title">2. Formato de Saída</h2>
+                <div class="input-group">
+                    <label for="format-select">Converter para:</label>
+                    <select id="format-select" class="text-input">
+                        <option value="webm">Vídeo WebM (.webm) - Alta compatibilidade web</option>
+                        <option value="mp4">Vídeo MP4 (.mp4) - Nativamente suportado</option>
+                        <option value="mp3">Apenas Áudio MP3 (.mp3)</option>
+                        <option value="wav">Apenas Áudio WAV (.wav)</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- PROGRESSO -->
+            <div class="progress-container hidden" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+                <span class="progress-text" id="progress-text">0%</span>
+            </div>
+
+            <!-- BOTÃO -->
+            <div class="action-bar">
+                <button id="convert-btn" class="btn btn-primary" disabled>
+                    <span>⚡</span> Converter e Baixar
+                </button>
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <p>🔒 Processamento 100% Client-Side. Seus vídeos não saem do seu navegador.</p>
+        </footer>
+    </div>
+
+    <!-- Elemento invisível para processamento de vídeo em tempo real -->
+    <canvas id="conversion-canvas" style="display: none;"></canvas>
+
+    <script src="script.js"></script>
+</body>
+</html>
