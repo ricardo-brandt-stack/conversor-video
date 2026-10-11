@@ -48,7 +48,7 @@ fileInput.addEventListener('change', (e) => {
 });
 
 // =========================================================
-// 3. CONVERSÃO DE VÍDEO COM ÁUDIO SINCRONIZADO
+// 3. LÓGICA DE CONVERSÃO
 // =========================================================
 convertBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
@@ -63,7 +63,7 @@ convertBtn.addEventListener('click', async () => {
             convertBtn.textContent = 'Extraindo áudio do vídeo...';
             await extractAudioFromVideo(selectedFile, targetFormat);
         } else {
-            convertBtn.textContent = 'Convertendo vídeo e áudio...';
+            convertBtn.textContent = 'Convertendo vídeo e áudio em segundo plano...';
             await convertVideoWithAudio(selectedFile, targetFormat);
         }
 
@@ -86,30 +86,41 @@ function updateProgress(percent) {
     progressText.textContent = `${percent}%`;
 }
 
-// Conversão de Vídeo mantendo Faixa de Áudio Original
+// Conversão Silenciosa (processa áudio e vídeo sem reproduzir no alto-falante)
 function convertVideoWithAudio(file, format) {
     return new Promise((resolve, reject) => {
         const video = document.createElement('video');
         video.src = URL.createObjectURL(file);
         video.playsInline = true;
-        
-        // Mantém o vídeo mudo durante o processamento visual para não reproduzir o som no alto-falante
-        video.muted = false; 
-        video.volume = 1.0;
+        video.muted = false;
 
         video.onloadedmetadata = () => {
-            // Captura o stream diretamente do elemento de vídeo (Vídeo + Áudio)
-            let stream = null;
+            // Contexto de áudio separado para não tocar nos alto-falantes
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioCtx.createMediaElementSource(video);
+            const audioDestination = audioCtx.createMediaStreamDestination();
+            
+            // Conecta o áudio do vídeo APENAS ao gravador
+            source.connect(audioDestination);
+
+            // Captura do fluxo de vídeo
+            let videoStream = null;
             if (typeof video.captureStream === 'function') {
-                stream = video.captureStream();
+                videoStream = video.captureStream();
             } else if (typeof video.mozCaptureStream === 'function') {
-                stream = video.mozCaptureStream();
+                videoStream = video.mozCaptureStream();
             } else {
-                reject(new Error('Navegador não suporta a captura de stream de vídeo.'));
+                reject(new Error('Navegador não suporta a captura de vídeo.'));
                 return;
             }
 
-            // Seleciona o MimeType compatível com o navegador
+            // Combina faixa de vídeo com a faixa de áudio gravada
+            const combinedStream = new MediaStream([
+                ...videoStream.getVideoTracks(),
+                ...audioDestination.stream.getAudioTracks()
+            ]);
+
+            // Formato de saída
             let mimeType = 'video/webm;codecs=vp8,opus';
             if (format === 'mp4' && MediaRecorder.isTypeSupported('video/mp4')) {
                 mimeType = 'video/mp4';
@@ -117,7 +128,7 @@ function convertVideoWithAudio(file, format) {
                 mimeType = 'video/webm';
             }
 
-            const mediaRecorder = new MediaRecorder(stream, { mimeType });
+            const mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
             const chunks = [];
 
             mediaRecorder.ondataavailable = (e) => {
@@ -128,6 +139,7 @@ function convertVideoWithAudio(file, format) {
                 const finalBlob = new Blob(chunks, { type: mimeType });
                 updateProgress(100);
                 downloadBlob(finalBlob, getOutputName(file.name, format));
+                audioCtx.close();
                 resolve();
             };
 
@@ -137,7 +149,7 @@ function convertVideoWithAudio(file, format) {
                 mediaRecorder.start();
             }).catch(reject);
 
-            // Acompanhamento do progresso em tempo real
+            // Progresso percentual
             const interval = setInterval(() => {
                 if (video.duration) {
                     const progress = Math.round((video.currentTime / video.duration) * 100);
@@ -155,7 +167,7 @@ function convertVideoWithAudio(file, format) {
     });
 }
 
-// Extração de Áudio de Vídeo para MP3/WAV
+// Extração de Áudio do Vídeo (MP3/WAV)
 async function extractAudioFromVideo(file, format) {
     const arrayBuffer = await file.arrayBuffer();
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -190,7 +202,7 @@ function downloadBlob(blob, filename) {
     document.body.removeChild(a);
 }
 
-// Converte áudio para formato WAV
+// Converte AudioBuffer para WAV
 function bufferToWav(buffer) {
     const numOfChan = buffer.numberOfChannels;
     const length = buffer.length * numOfChan * 2 + 44;
@@ -219,7 +231,7 @@ function bufferToWav(buffer) {
     return new Blob([out], { type: 'audio/wav' });
 }
 
-// Converte áudio extraído
+// Converte AudioBuffer para MP3
 function bufferToMp3Audio(buffer, ctx) {
     return new Promise((resolve) => {
         const dest = ctx.createMediaStreamDestination();
